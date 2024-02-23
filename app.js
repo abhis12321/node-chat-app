@@ -9,6 +9,7 @@ const User = require('./models/userModel');
 mongoose.connect(process.env.MONGO_URL);
 let port = 5000;
 
+
 // middleware
 app.use('/' , userRoute);
 // app.use(session({ resave: true ,secret: process.env.SESSION_KEY , saveUninitialized: true}));

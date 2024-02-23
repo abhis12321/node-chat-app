@@ -1,0 +1,174 @@
+    <!-- HEADER -->
+<%- include('layout/header.ejs')  %>
+
+
+    <% if(typeof user !== 'undefined') { %>
+        <h1>Hii, <%= user.name %></h1>
+    <% } %>
+    <a href="/logout">logout</a>
+    
+    
+    
+    
+    <% if(typeof users !== 'undefined') { %>
+        <%  users.forEach(user => { %>
+            <div class="user-cant" userId="<%= user._id %>">
+                <p class="user-info">
+                    <img src="<%= user.image %>" alt="" width="50" height="50" class="<%= 'border'+user.isOnline %>" id="<%= 'status'+ user._id %>">
+                </p>
+                <h2 class="user-name">
+                    <%= user.name %>
+                </h2>
+            </div>
+            
+            <div class="chat-cant hidden">
+                <div class="left-chat chat">Hii</div>
+                <div class="right-chat chat">Hii</div>
+
+
+                <form class="message-cant" userId="<%= user._id %>">
+                    <input type="text" class="message" required>
+                    <input type="submit" value="send">
+                </form>
+                <div class="height-2rem"></div>
+            </div>
+        <%  }) %>
+    <% } %>
+
+
+    
+<script >
+    var receiverId;
+    var sender_id = '<%= user._id %>';
+    let currentChatBox , currentFormBox;
+    var socket = io('/user-namespace' , {
+        auth:{
+            sender_id,
+        }
+    });
+
+    socket.on('getOnlineStatus' , ({_id}) => {
+        let img = document.getElementById('status' + _id);
+        img.classList.replace('border0' , 'border1')
+    })
+    socket.on('getOfflineStatus' , ({_id}) => {
+        let img = document.getElementById('status' + _id);
+        img.classList.replace('border1' , 'border0')
+    })
+
+
+
+
+    let userCants = document.querySelectorAll('.user-cant');
+    userCants.forEach(userCant => {
+        userCant.addEventListener('click' , async(event) => {
+            let chatBox = event.target.nextElementSibling
+            let chatBoxClass = chatBox.classList;
+            currentChatBox = chatBox;
+            currentFormBox = chatBox.querySelector('.height-2rem');
+            receiverId = event.target.getAttribute('userId');
+            let body = {
+                senderId:sender_id,
+                receiverId,
+            }
+            
+            try {
+                let chats = await fetch('/loadchat' , {
+                    method: 'POST',
+                    headers: {
+                    'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(body)
+                })
+                .then(res => res.json()) 
+                .then(data => data.success ? data.chats : null)
+                .catch(err => null);
+
+                
+                chats.forEach(chat => {
+                    let chatClass = chat.senderId == sender_id ? "right" : "left";
+                    let currentFormBox = chatBox.querySelector('.height-2rem');
+                    chatBox.insertBefore(messageWritter(chatClass , chat.message) , currentFormBox);  
+                })
+
+                              
+            } catch(err) {
+                alert("error" , err.message);
+            }
+
+            if(chatBoxClass.contains('hidden')) {                
+                chatBoxClass.replace('hidden' , 'block');
+            }
+            else {
+                chatBoxClass.replace('block' , 'hidden');
+            }
+        })
+    });
+
+
+    let messageCants = document.querySelectorAll('.message-cant');
+    messageCants.forEach(messageCant => {
+        messageCant.addEventListener('submit' , async(event) => {
+            event.preventDefault();
+            let parent = messageCant.parentElement;
+            currentChatBox = parent;
+            currentFormBox = parent.querySelector('.height-2rem');
+
+            let messageInput = messageCant.querySelector('.message');
+            let message = messageInput.value;
+
+            let myMessage = messageWritter('right' , message);
+            // parent.appendChild(myMessage);
+            parent.insertBefore(myMessage , currentFormBox);
+
+            receiverId = messageCant.getAttribute('userId');
+
+            messageInput.value = "";
+            let body = {
+                senderId:sender_id,
+                message,
+                receiverId,
+            }
+
+            try {
+                await fetch('/savechat' , {
+                    method: 'POST',
+                    headers: {
+                    'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(body)
+                })
+                .then(res => res.json())                
+                .then(data => {
+                    socket.emit('save-chat' , body)
+                })
+            } catch(err) {
+                alert("error" , err.message);
+            }
+
+        });
+    })
+    
+
+    socket.on('new-chat' , data => {
+        alert("new-chat-insert");
+        if(data.senderId === receiverId && data.receiverId === sender_id) {
+            let newMessage = messageWritter('left' , data.message);
+            currentChatBox.insertBefore(newMessage , currentFormBox);
+            // currentChatBox.appendChild(newMessage);
+            alert("gap-box" , currentFormBox);
+        }
+    })
+    function messageWritter(direction , message) {
+        const node = document.createElement("div");
+        node.innerText = message;
+
+        node.classList.add(`${direction}-chat` , 'chat');        
+        return node;
+    }
+
+</script>
+
+
+    <!-- FOOTER -->
+<%- include('layout/footer.ejs') %>

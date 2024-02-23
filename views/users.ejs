@@ -1,0 +1,19 @@
+    <!-- HEADER -->
+<%- include('layout/header.ejs')  %>
+
+
+    <%  users.forEach(user => { %>
+        <div class="user-cant">
+            <p class="user-info">
+                <img src="<%= user.image %>" alt="" width="50" height="50" class="<%= 'border'+user.isOnline %>">
+            </p>
+            <h2 class="user-name">
+                <%= user.name %>
+            </h2>
+        </div>
+    <%  }) %>
+
+
+
+    <!-- FOOTER -->
+<%- include('layout/footer.ejs') %>

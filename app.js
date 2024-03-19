@@ -7,7 +7,7 @@ const io = require('socket.io')(http);
 const User = require('./models/userModel');
 
 mongoose.connect(process.env.MONGO_URL);
-let port = 5000;
+let port = process.env.PORT || 5000;
 
 
 // middleware
@@ -26,10 +26,11 @@ unsp.on('connection' , async (socket) => {
     
     // BROADCASTING ONLINE-STATUS
     socket.broadcast.emit('getOnlineStatus' , {_id:socket.handshake.auth.sender_id});
+    console.log("user connected");
     socket.on('save-chat' , body => {
         socket.broadcast.emit('new-chat' , body);
     })
-    console.log("user connected");
+    
     socket.on('disconnect' , async () => {
         let sender = await User.findByIdAndUpdate({_id:socket.handshake.auth.sender_id}, { $set: { isOnline: 0 }});
         
